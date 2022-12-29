@@ -37,12 +37,12 @@ dependencies {
 }
 
 // Define the main class for the application
-mainClassName = 'App'
+mainClassName = 'ChatroomServer'
 
 jar {
     manifest {
         attributes(
-                'Main-Class': 'App'
+                'Main-Class': 'ChatroomServer'
         )
     }
 }
