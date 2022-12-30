@@ -9,7 +9,6 @@ import java.util.logging.Logger;
 public class ClientReceiver extends Thread {
   private ServerHandler serverHandler;
   private ServerSocket serverSocket;
-  private Socket socket;
   private final Logger LOGGER = Logger.getLogger(ClientReceiver.class.getName());
 
   public ClientReceiver(int port, ServerHandler serverHandler) {
@@ -24,19 +23,17 @@ public class ClientReceiver extends Thread {
   @Override
   public void run() {
     try {
+      LOGGER.log(
+          Level.INFO, "Listening for ServerSocket traffic on port " + serverSocket.getLocalPort());
+      final Socket socket = serverSocket.accept();
+      serverHandler.addSocket(socket);
+
       while (true) {
-        LOGGER.log(Level.INFO, "Listening for traffic on port " + serverSocket.getLocalPort());
-        socket = serverSocket.accept();
-        serverHandler.addSocket(socket);
         final String clientMessage =
             new BufferedReader(new InputStreamReader(socket.getInputStream())).readLine();
 
         if (null != clientMessage && !clientMessage.equals("")) {
-          LOGGER.log(
-              Level.INFO,
-              String.format(
-                  "Received message %s from %s:%d",
-                  clientMessage, socket.getInetAddress().getHostAddress(), socket.getPort()));
+          LOGGER.log(Level.INFO, String.format("Received message is %s", clientMessage));
           serverHandler.addToMessageQueue(clientMessage);
         }
       }

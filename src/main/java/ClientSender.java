@@ -18,6 +18,9 @@ public class ClientSender extends Thread {
   public void run() {
     try {
       final List<Socket> sockets = serverHandler.getSockets();
+      LOGGER.log(
+          Level.INFO,
+          String.format("Total amount of sockets needing new message is %d", sockets.size()));
       for (Socket socket : sockets) {
         final PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
         printWriter.println(message);
