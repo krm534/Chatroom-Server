@@ -82,5 +82,13 @@ public class ServerHandler extends Thread {
   public void removeClientInfo(int clientPort, int socketPort) {
     existingClientPorts.remove(clientPort);
     sockets.remove(socketPort);
+    LOGGER.log(
+        Level.INFO,
+        String.format(
+            "Client port %d has been removed from list of existing client ports", clientPort));
+    LOGGER.log(
+        Level.INFO,
+        String.format(
+            "Socket port %d has been removed from list of existing client messaging sockets", socketPort));
   }
 }
