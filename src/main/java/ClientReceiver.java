@@ -9,12 +9,14 @@ import java.util.logging.Logger;
 public class ClientReceiver extends Thread {
   private ServerHandler serverHandler;
   private ServerSocket serverSocket;
+  public int serverSocketPort;
   private final Logger LOGGER = Logger.getLogger(ClientReceiver.class.getName());
 
   public ClientReceiver(int port, ServerHandler serverHandler) {
     try {
       this.serverSocket = new ServerSocket(port);
       this.serverHandler = serverHandler;
+      this.serverSocketPort = port;
     } catch (IOException e) {
       LOGGER.log(Level.SEVERE, "ReceiveClient Exception: " + e.getMessage());
     }
@@ -35,6 +37,12 @@ public class ClientReceiver extends Thread {
         if (null != clientMessage && !clientMessage.equals("")) {
           LOGGER.log(Level.INFO, String.format("Received message is %s", clientMessage));
           serverHandler.addToMessageQueue(clientMessage);
+        }
+
+        if (null == clientMessage) {
+          serverHandler.removeClientInfo(serverSocketPort, socket.getPort());
+          socket.close();
+          break;
         }
       }
     } catch (IOException e) {

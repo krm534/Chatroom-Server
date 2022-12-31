@@ -39,9 +39,11 @@ public class ServerHandler extends Thread {
         ClientReceiver clientReceiver = new ClientReceiver(newClientPort, this);
         clientReceiver.start();
 
+        String clientData =
+            String.format("{userId: %s, port: %d}", UUID.randomUUID().toString(), newClientPort);
         final PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-        out.println(newClientPort);
-        LOGGER.log(Level.INFO, String.format("New port %d sent to client", newClientPort));
+        out.println(clientData);
+        LOGGER.log(Level.INFO, String.format("'%s' sent to client", clientData));
         socket.close();
       }
     } catch (IOException e) {
@@ -75,5 +77,10 @@ public class ServerHandler extends Thread {
     if (!sockets.containsKey(socket.getPort())) {
       sockets.put(socket.getPort(), socket);
     }
+  }
+
+  public void removeClientInfo(int clientPort, int socketPort) {
+    existingClientPorts.remove(clientPort);
+    sockets.remove(socketPort);
   }
 }
