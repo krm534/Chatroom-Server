@@ -3,7 +3,7 @@ Java application that runs the server portion of a chatroom.
 
 ## Prerequisites
 - The chatroom client located [here](https://github.com/krm534/Chatroom-Client) must be used to communicate with the Chatroom Server. **The Chatroom Server must be started before the Chatroom Client connects.**
-- Java JDK 11 must be used to run this application since some of the Gradle dependencies depend on this version.
+- At least Java JDK 11 must be used to run this application since some of the Gradle dependencies depend on this version.
 
 ## How to use?
 - Run the Gradle Shadow plugin's built .jar file on an accessible machine / server.
