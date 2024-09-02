@@ -1,15 +1,16 @@
+import Helper.SocketController;
 import java.io.PrintWriter;
-import java.net.Socket;
 import java.util.List;
+import javax.crypto.SecretKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class OutgoingResponseManager extends Thread {
   private ServerManager serverManager;
-  private String message;
+  private byte[] message;
   private final Logger LOGGER = LogManager.getLogger(OutgoingResponseManager.class.getName());
 
-  public OutgoingResponseManager(ServerManager serverManager, String message) {
+  public OutgoingResponseManager(ServerManager serverManager, byte[] message) {
     this.serverManager = serverManager;
     this.message = message;
   }
@@ -17,16 +18,21 @@ public class OutgoingResponseManager extends Thread {
   @Override
   public void run() {
     try {
-      final List<Socket> sockets = serverManager.getSockets();
+      final List<SocketController> sockets = serverManager.getSockets();
       LOGGER.info(
           String.format("Total amount of sockets needing new message is %d", sockets.size()));
-      for (Socket socket : sockets) {
-        final PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
-        printWriter.println(message);
+      for (SocketController socket : sockets) {
+        final SocketController socketController =
+            serverManager.searchSocketsByPort(socket.getServerPort());
+        final SecretKey secretKey = socketController.getSecretKey();
+
+        final PrintWriter printWriter = new PrintWriter(socket.getSocket().getOutputStream(), true);
+        printWriter.println(serverManager.encryptMessage(message, secretKey));
         LOGGER.info(
             String.format(
-                "Message %s sent to client %s:%d",
-                message, socket.getInetAddress().getHostAddress(), socket.getPort()));
+                "Message sent to client %s:%d",
+                socket.getSocket().getInetAddress().getHostAddress(),
+                socket.getSocket().getPort()));
       }
     } catch (Exception e) {
       LOGGER.error("Exception: " + e.getMessage());
