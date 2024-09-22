@@ -11,6 +11,3 @@ Java application that runs the server portion of a chatroom.
 ## Notes
 - The server was only tested on a DigitalOcean Droplet (Linux-based OS) so this could need tweaking if trying to run on Windows OS.
 - The server was only tested as stable against 2 clients from the DigitalOcean Droplet. So, using more clients than this could lead to issues. But, this would probably depends on the memory-capacity / processing speed of the machine the server is used on.
-
-## TODO
-- Add functionality for supporting TLS so messages between the server / client are encrypted.
