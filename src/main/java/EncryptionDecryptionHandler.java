@@ -4,6 +4,7 @@ import com.google.common.primitives.Bytes;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.util.Base64;
 import java.util.Scanner;
@@ -44,25 +45,23 @@ public class EncryptionDecryptionHandler {
         KeyType.AES.name());
   }
 
-  public static byte[] decryptMessage(byte[] message, SecretKey secretKey)
+  public static String decryptMessage(byte[] message, SecretKey secretKey)
       throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException,
           IllegalBlockSizeException, BadPaddingException {
+    final byte[] decodedMessage = Base64.getDecoder().decode(message);
     final Cipher cipher = Cipher.getInstance(KeyType.AES.name());
     cipher.init(Cipher.DECRYPT_MODE, secretKey);
-    final byte[] decryptedMessage = cipher.doFinal(message);
-    return decryptedMessage;
+    final byte[] decryptedMessage = cipher.doFinal(decodedMessage);
+    final String decryptedMessageString = new String(decryptedMessage, StandardCharsets.UTF_8);
+    return decryptedMessageString.replace(Constants.DELIMITER, "");
   }
 
-  public static byte[] encryptMessage(byte[] message, SecretKey secretKey)
+  public static String encryptMessage(byte[] message, SecretKey secretKey)
       throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException,
           IllegalBlockSizeException, BadPaddingException {
     final Cipher cipher = Cipher.getInstance(KeyType.AES.name());
     cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-    return cipher.doFinal(message);
-  }
-
-  public static String Base64EncodeMessage(byte[] encryptedMessage) {
-    final String encodedClientData = Base64.getEncoder().encodeToString(encryptedMessage);
-    return encodedClientData;
+    final byte[] encryptedMessage = cipher.doFinal(message);
+    return Base64.getEncoder().encodeToString(encryptedMessage);
   }
 }

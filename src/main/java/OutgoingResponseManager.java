@@ -1,4 +1,6 @@
-import Helper.SocketController;
+import Helper.MessagesJO;
+import Helper.SocketControllerJO;
+import com.google.gson.Gson;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.security.InvalidKeyException;
@@ -13,38 +15,41 @@ import org.apache.logging.log4j.Logger;
 
 public class OutgoingResponseManager extends Thread {
   private ServerManager serverManager;
-  private byte[] message;
+  private MessagesJO message;
+  private Gson gson;
   private final Logger LOGGER = LogManager.getLogger(OutgoingResponseManager.class.getName());
 
-  public OutgoingResponseManager(ServerManager serverManager, byte[] message) {
+  public OutgoingResponseManager(ServerManager serverManager, MessagesJO message) {
     this.serverManager = serverManager;
     this.message = message;
+    this.gson = new Gson();
   }
 
   @Override
   public void run() {
     try {
-      final List<SocketController> sockets = serverManager.getSockets();
+      final List<SocketControllerJO> sockets = serverManager.getSockets();
       LOGGER.info(
           String.format("Total amount of sockets needing new message is %d", sockets.size()));
-      for (SocketController socket : sockets) {
+      for (SocketControllerJO socket : sockets) {
         sendMessage(socket);
       }
+      this.gson = new Gson();
     } catch (Exception e) {
       LOGGER.error("Exception: " + e.getMessage());
     }
   }
 
-  private void sendMessage(SocketController socket)
+  private void sendMessage(SocketControllerJO socket)
       throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException,
           BadPaddingException, InvalidKeyException, IOException {
-    final SocketController socketController =
+    final SocketControllerJO socketControllerJO =
         serverManager.searchSocketsByPort(socket.getServerPort());
-    final SecretKey secretKey = socketController.getSecretKey();
+    final SecretKey secretKey = socketControllerJO.getSecretKey();
     final PrintWriter printWriter = new PrintWriter(socket.getSocket().getOutputStream(), true);
-    final byte[] encryptedMessage = EncryptionDecryptionHandler.encryptMessage(message, secretKey);
+    final String messageString = gson.toJson(message);
     final String encodedEncryptedMessage =
-        EncryptionDecryptionHandler.Base64EncodeMessage(encryptedMessage);
+        EncryptionDecryptionHandler.encryptMessage(messageString.getBytes(), secretKey);
     printWriter.println(encodedEncryptedMessage);
     LOGGER.info(
         String.format(

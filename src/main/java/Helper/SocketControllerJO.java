@@ -3,13 +3,15 @@ package Helper;
 import java.net.Socket;
 import javax.crypto.SecretKey;
 
-public class SocketController {
+public class SocketControllerJO {
 
   private Socket socket;
 
   private SecretKey secretKey;
 
   private int serverPort;
+
+  private String userId;
 
   public Socket getSocket() {
     return socket;
@@ -33,5 +35,13 @@ public class SocketController {
 
   public void setServerPort(int serverPort) {
     this.serverPort = serverPort;
+  }
+
+  public String getUserId() {
+    return userId;
+  }
+
+  public void setUserId(String userId) {
+    this.userId = userId;
   }
 }
