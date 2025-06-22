@@ -1,14 +1,15 @@
-import Helper.Constants;
-import Helper.Message;
-import Helper.SocketController;
+import DatabaseHelper.DatabaseQuery;
+import DatabaseHelper.MessagesDO;
+import Helper.MessagesJO;
+import Helper.SocketControllerJO;
+import Helper.UsersJO;
 import com.google.gson.Gson;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -40,38 +41,72 @@ public class IncomingRequestManager extends Thread {
       while (true) {
         final Scanner scanner = new Scanner(socket.getInputStream());
         final String input = scanner.nextLine();
-        if (input.isEmpty()) {
-          serverHandler.removeSocket(serverSocketPort, serverSocketPort);
-          socket.close();
-          break;
-        }
-        final byte[] decryptedMessage = receiveDecryptedMessage(input);
-        if (isReceivedMessageValid(decryptedMessage)) {
-          serverHandler.sendOutgoingMessage(decryptedMessage);
+        final String decryptedMessage = receiveDecryptedMessage(input);
+        final MessagesJO message = gson.fromJson(decryptedMessage, MessagesJO.class);
+        LOGGER.info(String.format("Received message is %s", message));
+        switch (message.getMessageType()) {
+          case Setup:
+            setupUserInfoMessage(message);
+            break;
+          case Normal:
+            processNormalMessages(message);
+            break;
+          default:
+            throw new Exception("Message type not found");
         }
       }
+    } catch (NoSuchElementException e) {
+      serverHandler.removeSocket(serverSocketPort);
     } catch (Exception e) {
       LOGGER.error("Exception: " + e.getMessage());
     }
   }
 
-  private byte[] receiveDecryptedMessage(String message)
-      throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException,
-          BadPaddingException, InvalidKeyException {
-    final SocketController socketController = serverHandler.searchSocketsByPort(serverSocketPort);
-    final SecretKey secretKey = socketController.getSecretKey();
-    final byte[] decodedMessage = Base64.getDecoder().decode(message);
-    return EncryptionDecryptionHandler.decryptMessage(decodedMessage, secretKey);
+  private void processNormalMessages(MessagesJO message) {
+    if (isReceivedMessageValid(message)) {
+      final MessagesJO newMessage = storeMessageToDatabaseTable(message);
+      serverHandler.sendOutgoingMessage(newMessage);
+    }
   }
 
-  private boolean isReceivedMessageValid(byte[] decryptedMessage) {
-    String decryptedMessageString = new String(decryptedMessage, StandardCharsets.UTF_8);
-    decryptedMessageString = decryptedMessageString.replace(Constants.DELIMITER, "");
-    LOGGER.info(String.format("Received message is %s", decryptedMessageString));
-    final Message message = gson.fromJson(decryptedMessageString, Message.class);
+  private void setupUserInfoMessage(MessagesJO message) {
+    final SocketControllerJO socketControllerJO =
+        serverHandler.searchSocketsByPort(serverSocketPort);
+    socketControllerJO.setUserId(message.getUserId());
+
+    final UsersJO user = new UsersJO();
+    user.setUserId(message.getUserId());
+    user.setPortNumber(serverSocketPort);
+    DatabaseHandler.handleQuery(DatabaseQuery.DatabaseQuery_AddUserToUsersTable, user);
+  }
+
+  private String receiveDecryptedMessage(String message)
+      throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException,
+          BadPaddingException, InvalidKeyException {
+    final SocketControllerJO socketControllerJO =
+        serverHandler.searchSocketsByPort(serverSocketPort);
+    final SecretKey secretKey = socketControllerJO.getSecretKey();
+    return EncryptionDecryptionHandler.decryptMessage(message.getBytes(), secretKey);
+  }
+
+  private boolean isReceivedMessageValid(MessagesJO message) {
     if (null == message.getMessage() || message.getMessage().isEmpty()) {
       return false;
     }
     return true;
+  }
+
+  private MessagesJO storeMessageToDatabaseTable(MessagesJO message) {
+    final MessagesDO messageDO =
+        (MessagesDO)
+            DatabaseHandler.handleQuery(
+                DatabaseQuery.DatabaseQuery_AddMessageToMessagesTable, message);
+
+    final MessagesJO newMessage = new MessagesJO();
+    newMessage.setTimestamp(messageDO.getTimestamp());
+    newMessage.setMessage(messageDO.getMessage());
+    newMessage.setAttachedB64Image(messageDO.getAttachedB64Image());
+    newMessage.setUserId(messageDO.getUsersDO().getUserId());
+    return newMessage;
   }
 }
